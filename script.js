@@ -52,16 +52,26 @@ const game = {
         leaderboard: document.getElementById('screen-leaderboard')
     },
 
+    // 修复的核心部分：正确管理显示状态
     showScreen: (name) => {
-        Object.values(game.screens).forEach(el => el.classList.remove('active'));
-        if (game.screens[name]) {
-            game.screens[name].classList.add('active');
-            game.screens[name].style.display = 'flex'; // Ensure flex layout
+        // 1. 先隐藏所有 UI 面板 (移除 active 类，并强制隐藏)
+        ['setup', 'ready', 'transition', 'leaderboard'].forEach(key => {
+            if (game.screens[key]) {
+                game.screens[key].classList.remove('active');
+            }
+        });
+
+        // 2. 单独隐藏 HUD (因为它不是 .card 类型)
+        if (game.screens.hud) {
+            game.screens.hud.style.display = 'none';
         }
+
+        // 3. 显示目标面板
         if (name === 'hud') {
             game.screens.hud.style.display = 'flex';
-        } else {
-            game.screens.hud.style.display = 'none';
+        } else if (game.screens[name]) {
+            // 只添加类，不设置行内样式 style.display
+            game.screens[name].classList.add('active');
         }
     },
 
@@ -81,6 +91,8 @@ const game = {
         
         game.score = 0;
         document.getElementById('hud-score').innerText = '0';
+        
+        // 切换到 HUD 界面
         game.showScreen('hud');
         
         // 3D Scene Reset
@@ -303,7 +315,6 @@ const scene3D = {
 // --- Interaction (Raycasting) ---
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
-const dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0); // Virtual plane for dragging
 let draggedObject = null;
 let dragOffset = new THREE.Vector3();
 
@@ -321,9 +332,6 @@ function onDown(x, y) {
         const intersectPoint = new THREE.Vector3();
         raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), -draggedObject.position.z), intersectPoint);
         dragOffset.copy(intersectPoint).sub(draggedObject.position);
-        
-        // Lift slightly
-        // We will update Z dynamically in drag
     }
 }
 
