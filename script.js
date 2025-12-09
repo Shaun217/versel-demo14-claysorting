@@ -8,7 +8,9 @@ const COLORS = {
     darkIcon: 0x4A4A5E
 };
 
-// --- Audio (Synthesized "Pop" Sounds) ---
+const SHAPE_COUNT = 20;
+
+// --- Audio ---
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function playSound(type) {
     if(audioCtx.state === 'suspended') audioCtx.resume();
@@ -23,27 +25,27 @@ function playSound(type) {
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
     } else if (type === 'win') {
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(600, now);
-        osc.frequency.linearRampToValueAtTime(1200, now + 0.3);
+        osc.frequency.setValueAtTime(500, now);
+        osc.frequency.linearRampToValueAtTime(1000, now + 0.4);
         gain.gain.setValueAtTime(0.2, now);
-        gain.gain.linearRampToValueAtTime(0, now + 0.5);
+        gain.gain.linearRampToValueAtTime(0, now + 0.6);
     }
     
     osc.connect(gain);
     gain.connect(audioCtx.destination);
     osc.start(now);
-    osc.stop(now + 0.5);
+    osc.stop(now + 0.6);
 }
 
-// --- Game State Management ---
+// --- Game Logic ---
 const game = {
     players: [],
     totalPlayers: 2,
     currIdx: 0,
-    score: 0,
+    remaining: 0,
+    startTime: 0,
     timerInterval: null,
     
-    // UI Helpers
     screens: {
         setup: document.getElementById('screen-setup'),
         ready: document.getElementById('screen-ready'),
@@ -52,25 +54,17 @@ const game = {
         leaderboard: document.getElementById('screen-leaderboard')
     },
 
-    // 修复的核心部分：正确管理显示状态
     showScreen: (name) => {
-        // 1. 先隐藏所有 UI 面板 (移除 active 类，并强制隐藏)
+        // Clear all active classes
         ['setup', 'ready', 'transition', 'leaderboard'].forEach(key => {
-            if (game.screens[key]) {
-                game.screens[key].classList.remove('active');
-            }
+            if (game.screens[key]) game.screens[key].classList.remove('active');
         });
+        if (game.screens.hud) game.screens.hud.style.display = 'none';
 
-        // 2. 单独隐藏 HUD (因为它不是 .card 类型)
-        if (game.screens.hud) {
-            game.screens.hud.style.display = 'none';
-        }
-
-        // 3. 显示目标面板
+        // Show target
         if (name === 'hud') {
             game.screens.hud.style.display = 'flex';
         } else if (game.screens[name]) {
-            // 只添加类，不设置行内样式 style.display
             game.screens[name].classList.add('active');
         }
     },
@@ -87,47 +81,46 @@ const game = {
 
     startRound: () => {
         const nameInput = document.getElementById('input-name').value || `P${game.currIdx+1}`;
-        game.players[game.currIdx] = { name: nameInput, score: 0 };
+        game.players[game.currIdx] = { name: nameInput, time: 0 };
         
-        game.score = 0;
-        document.getElementById('hud-score').innerText = '0';
+        // Reset Game Data
+        game.remaining = SHAPE_COUNT;
+        document.getElementById('hud-remaining').innerText = game.remaining;
         
-        // 切换到 HUD 界面
         game.showScreen('hud');
         
-        // 3D Scene Reset
-        scene3D.spawnShapes(12); // Spawn initial batch
+        // Spawn 20 shapes at once
+        scene3D.clearShapes();
+        scene3D.spawnShapes(SHAPE_COUNT);
         
-        // Timer
-        let timeLeft = 60;
-        document.getElementById('hud-timer').innerText = timeLeft;
-        
+        // Start Stopwatch
+        game.startTime = Date.now();
         clearInterval(game.timerInterval);
+        
         game.timerInterval = setInterval(() => {
-            timeLeft--;
-            document.getElementById('hud-timer').innerText = timeLeft;
-            if(timeLeft <= 0) game.endRound();
-        }, 1000);
+            const now = Date.now();
+            const elapsed = (now - game.startTime) / 1000;
+            document.getElementById('hud-timer').innerText = elapsed.toFixed(1) + 's';
+        }, 100);
     },
 
-    addScore: () => {
-        game.score += 10;
-        document.getElementById('hud-score').innerText = game.score;
+    onShapeSorted: () => {
+        game.remaining--;
+        document.getElementById('hud-remaining').innerText = game.remaining;
         playSound('pop');
         
-        // Spawn a new one to replace
-        scene3D.spawnOne();
+        if (game.remaining <= 0) {
+            game.endRound();
+        }
     },
 
     endRound: () => {
         clearInterval(game.timerInterval);
-        game.players[game.currIdx].score = game.score;
+        const elapsed = (Date.now() - game.startTime) / 1000;
+        game.players[game.currIdx].time = elapsed;
         
-        document.getElementById('round-score').innerText = game.score;
+        document.getElementById('round-time').innerText = elapsed.toFixed(2) + 's';
         game.showScreen('transition');
-        
-        // Clean up scene
-        scene3D.clearShapes();
     },
 
     nextPlayer: () => {
@@ -143,11 +136,11 @@ const game = {
         game.showScreen('leaderboard');
         playSound('win');
         
-        const sorted = [...game.players].sort((a,b) => b.score - a.score);
+        // Sort by Time (Lowest is best)
+        const sorted = [...game.players].sort((a,b) => a.time - b.time);
         const container = document.getElementById('podium-container');
         container.innerHTML = '';
         
-        // Visual order: 2nd, 1st, 3rd
         const order = [1, 0, 2];
         order.forEach(rankIdx => {
             if(sorted[rankIdx]) {
@@ -157,7 +150,7 @@ const game = {
                 div.innerHTML = `
                     <div class="podium-name">${p.name}</div>
                     <div class="podium-bar">${rankIdx+1}</div>
-                    <div class="podium-score">${p.score}pts</div>
+                    <div class="podium-score">${p.time.toFixed(2)}s</div>
                 `;
                 container.appendChild(div);
             }
@@ -165,16 +158,13 @@ const game = {
     }
 };
 
-// UI Event Listeners
+// UI Listeners
 let tempPlayers = 2;
 window.updatePlayers = (delta) => {
     tempPlayers = Math.max(1, Math.min(10, tempPlayers + delta));
     document.getElementById('player-count-display').innerText = tempPlayers;
 };
-document.getElementById('btn-setup-confirm').onclick = () => {
-    game.totalPlayers = tempPlayers;
-    game.startPlayerPrep();
-};
+document.getElementById('btn-setup-confirm').onclick = () => { game.totalPlayers = tempPlayers; game.startPlayerPrep(); };
 document.getElementById('btn-start-game').onclick = game.startRound;
 document.getElementById('btn-next-player').onclick = game.nextPlayer;
 
@@ -183,12 +173,12 @@ document.getElementById('btn-next-player').onclick = game.nextPlayer;
 const canvas = document.getElementById('canvas-container');
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(COLORS.bg);
-// Add gentle fog to blend floor
-scene.fog = new THREE.Fog(COLORS.bg, 15, 30);
+scene.fog = new THREE.Fog(COLORS.bg, 20, 50); // Softer fog
 
+// Camera: Positioned higher and angled down to see "bottom" boxes and "top" shapes
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 1, 100);
-camera.position.set(0, 8, 12);
-camera.lookAt(0, 0, 0);
+camera.position.set(0, 5, 20); // Moved back a bit
+camera.lookAt(0, 1, 0); 
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -196,18 +186,18 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 canvas.appendChild(renderer.domElement);
 
-// Lighting (Soft Studio Setup)
-const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+// Lights
+const ambient = new THREE.AmbientLight(0xffffff, 0.6);
 scene.add(ambient);
 const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-dirLight.position.set(5, 10, 5);
+dirLight.position.set(5, 12, 8);
 dirLight.castShadow = true;
-dirLight.shadow.mapSize.width = 1024;
-dirLight.shadow.mapSize.height = 1024;
+dirLight.shadow.mapSize.width = 2048;
+dirLight.shadow.mapSize.height = 2048;
 scene.add(dirLight);
 
-// Materials (Matte Clay)
-const matBase = { roughness: 1.0, metalness: 0.0 };
+// Materials
+const matBase = { roughness: 1.0, metalness: 0.0 }; // Clay-like
 const mats = {
     pink: new THREE.MeshStandardMaterial({ color: COLORS.pink, ...matBase }),
     blue: new THREE.MeshStandardMaterial({ color: COLORS.blue, ...matBase }),
@@ -216,32 +206,31 @@ const mats = {
     icon: new THREE.MeshBasicMaterial({ color: COLORS.darkIcon })
 };
 
-// --- Game Objects ---
+// --- Objects ---
 const shapes = [];
 const particles = [];
 const targets = [];
 
-// Create Targets (Boxes)
+// Create Targets (Boxes) - Moved DOWN to Y = -3.5
 function createTarget(x, type) {
     const group = new THREE.Group();
-    group.position.set(x, 0, 0);
+    group.position.set(x, -3.5, 0); // Positioned in Lower Half
 
     // Box
-    const geo = new THREE.BoxGeometry(2.5, 1.5, 2.5);
+    const geo = new THREE.BoxGeometry(2.2, 1.2, 2.2);
     const mesh = new THREE.Mesh(geo, mats.white);
     mesh.receiveShadow = true;
-    mesh.position.y = 0.75; // Sit on floor
     group.add(mesh);
 
-    // Icon (Procedural Geometry)
+    // Icon
     let iconGeo;
     if (type === 'cube') iconGeo = new THREE.PlaneGeometry(1, 1);
-    if (type === 'cone') iconGeo = new THREE.CircleGeometry(0.6, 3); // Triangle
-    if (type === 'sphere') iconGeo = new THREE.CircleGeometry(0.5, 32); // Circle
+    if (type === 'cone') iconGeo = new THREE.CircleGeometry(0.6, 3);
+    if (type === 'sphere') iconGeo = new THREE.CircleGeometry(0.5, 32);
 
     const icon = new THREE.Mesh(iconGeo, mats.icon);
-    icon.rotation.x = -Math.PI / 2; // Flat on top
-    icon.position.y = 1.51; // Slightly above box
+    icon.rotation.x = -Math.PI / 2;
+    icon.position.y = 0.61;
     if (type === 'cone') icon.rotation.z = Math.PI;
     group.add(icon);
 
@@ -251,44 +240,48 @@ function createTarget(x, type) {
 
 // Floor
 const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(50, 50),
-    new THREE.MeshStandardMaterial({ color: COLORS.bg, roughness: 1, metalness: 0 })
+    new THREE.PlaneGeometry(60, 60),
+    new THREE.MeshStandardMaterial({ color: COLORS.bg, roughness: 1 })
 );
 floor.rotation.x = -Math.PI/2;
+floor.position.y = -5; // Floor is lower now
 floor.receiveShadow = true;
 scene.add(floor);
 
+// Position Boxes
 createTarget(-3, 'cube');
 createTarget(0, 'cone');
 createTarget(3, 'sphere');
 
-// Shape Logic
+// Shape Management
 const scene3D = {
-    spawnOne: () => {
-        const types = ['cube', 'cone', 'sphere'];
-        const type = types[Math.floor(Math.random() * types.length)];
-        
-        let geo, mat;
-        if (type === 'cube') { geo = new THREE.BoxGeometry(0.8, 0.8, 0.8); mat = mats.blue; }
-        if (type === 'cone') { geo = new THREE.ConeGeometry(0.5, 1, 32); mat = mats.pink; }
-        if (type === 'sphere') { geo = new THREE.SphereGeometry(0.5, 32, 32); mat = mats.yellow; }
-
-        const mesh = new THREE.Mesh(geo, mat);
-        mesh.castShadow = true;
-        
-        // Random Pos
-        mesh.position.set((Math.random() - 0.5) * 8, 5, (Math.random() - 0.5) * 3 - 2);
-        mesh.rotation.set(Math.random(), Math.random(), Math.random());
-        
-        // Store original spawn pos for spring back
-        mesh.userData = { type, originalPos: mesh.position.clone(), velocity: 0 };
-        
-        scene.add(mesh);
-        shapes.push(mesh);
-    },
-
     spawnShapes: (count) => {
-        for(let i=0; i<count; i++) scene3D.spawnOne();
+        const types = ['cube', 'cone', 'sphere'];
+        
+        for(let i=0; i<count; i++) {
+            const type = types[Math.floor(Math.random() * types.length)];
+            let geo, mat;
+            
+            if (type === 'cube') { geo = new THREE.BoxGeometry(0.8, 0.8, 0.8); mat = mats.blue; }
+            if (type === 'cone') { geo = new THREE.ConeGeometry(0.5, 1, 32); mat = mats.pink; }
+            if (type === 'sphere') { geo = new THREE.SphereGeometry(0.5, 32, 32); mat = mats.yellow; }
+
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.castShadow = true;
+            
+            // Random Pos in UPPER MIDDLE (Y = 2.5 to 6)
+            const posX = (Math.random() - 0.5) * 8; // Spread X
+            const posY = 2.5 + Math.random() * 4;  // Spread Y (Height)
+            const posZ = (Math.random() - 0.5) * 2; // Slight depth spread
+            
+            mesh.position.set(posX, posY, posZ);
+            mesh.rotation.set(Math.random(), Math.random(), Math.random());
+            
+            mesh.userData = { type, originalPos: mesh.position.clone(), isReturning: false };
+            
+            scene.add(mesh);
+            shapes.push(mesh);
+        }
     },
 
     clearShapes: () => {
@@ -297,8 +290,8 @@ const scene3D = {
     },
 
     createExplosion: (pos, color) => {
-        for(let i=0; i<10; i++) {
-            const p = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.1), new THREE.MeshBasicMaterial({color}));
+        for(let i=0; i<8; i++) {
+            const p = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.15), new THREE.MeshBasicMaterial({color}));
             p.position.copy(pos);
             p.position.x += (Math.random()-0.5);
             p.position.y += (Math.random()-0.5);
@@ -312,11 +305,11 @@ const scene3D = {
     }
 };
 
-// --- Interaction (Raycasting) ---
+// --- Interaction (Raycaster) ---
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 let draggedObject = null;
-let dragOffset = new THREE.Vector3();
+let dragPlaneY = 0; // Dynamic dragging plane
 
 function onDown(x, y) {
     mouse.x = (x / window.innerWidth) * 2 - 1;
@@ -327,11 +320,9 @@ function onDown(x, y) {
 
     if (intersects.length > 0) {
         draggedObject = intersects[0].object;
-        
-        // Calc offset to keep mouse relative to object center
-        const intersectPoint = new THREE.Vector3();
-        raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), -draggedObject.position.z), intersectPoint);
-        dragOffset.copy(intersectPoint).sub(draggedObject.position);
+        draggedObject.userData.isReturning = false;
+        // Drag logic: Lock Z mostly, move XY
+        // But since we have a perspective camera, we map to a plane at the object's distance
     }
 }
 
@@ -344,43 +335,43 @@ function onMove(x, y) {
     raycaster.setFromCamera(mouse, camera);
     const intersectPoint = new THREE.Vector3();
     
-    // Drag on a plane closer to camera (Z=0 or so)
-    raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), intersectPoint);
+    // Drag on a plane at Z=0 (Center of scene depth)
+    const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+    raycaster.ray.intersectPlane(plane, intersectPoint);
     
     if (intersectPoint) {
-        draggedObject.position.copy(intersectPoint.sub(dragOffset));
-        // Keep it above floor
-        draggedObject.position.y = Math.max(0.5, draggedObject.position.y);
+        draggedObject.position.copy(intersectPoint);
+        draggedObject.position.z = 1; // Pull slightly forward towards camera
         draggedObject.rotation.x += 0.05;
-        draggedObject.rotation.z += 0.05;
+        draggedObject.rotation.y += 0.05;
     }
 }
 
 function onUp() {
     if (!draggedObject) return;
 
-    // Check Matches
     let match = false;
     for (const t of targets) {
-        // Distance check (ignoring Y height mostly)
+        // Distance Check
         const dx = draggedObject.position.x - t.x;
-        const dz = draggedObject.position.z - 0; // Targets are at Z=0 mostly
-        const dist = Math.sqrt(dx*dx + dz*dz);
+        const dy = draggedObject.position.y - t.mesh.position.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
         
-        if (dist < 1.5 && draggedObject.userData.type === t.type) {
+        // Check if close enough to box
+        if (dist < 1.8 && draggedObject.userData.type === t.type) {
             match = true;
-            game.addScore();
+            game.onShapeSorted();
+            
             scene3D.createExplosion(draggedObject.position, draggedObject.material.color);
             scene.remove(draggedObject);
             shapes.splice(shapes.indexOf(draggedObject), 1);
             
-            // Box Bop Animation
+            // Box Bounce
             t.mesh.scale.set(1.2, 0.8, 1.2);
             break;
         }
     }
 
-    // If no match, it will be handled in animation loop (spring back)
     if (!match) {
         draggedObject.userData.isReturning = true;
     }
@@ -388,12 +379,10 @@ function onUp() {
     draggedObject = null;
 }
 
-// Mouse Events
+// Listeners
 window.addEventListener('mousedown', e => onDown(e.clientX, e.clientY));
 window.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
 window.addEventListener('mouseup', onUp);
-
-// Touch Events
 window.addEventListener('touchstart', e => { e.preventDefault(); onDown(e.touches[0].clientX, e.touches[0].clientY); }, {passive: false});
 window.addEventListener('touchmove', e => { e.preventDefault(); onMove(e.touches[0].clientX, e.touches[0].clientY); }, {passive: false});
 window.addEventListener('touchend', onUp);
@@ -402,33 +391,28 @@ window.addEventListener('touchend', onUp);
 function animate() {
     requestAnimationFrame(animate);
 
-    // 1. Shapes Physics (Floating / Returning)
+    // 1. Shapes Idle / Return
     shapes.forEach(s => {
         if (s === draggedObject) return;
 
         if (s.userData.isReturning) {
-            // Spring back to start
             s.position.lerp(s.userData.originalPos, 0.1);
-            if (s.position.distanceTo(s.userData.originalPos) < 0.1) {
-                s.userData.isReturning = false;
-            }
+            if (s.position.distanceTo(s.userData.originalPos) < 0.1) s.userData.isReturning = false;
         } else {
-            // Idle Float
-            s.position.y += Math.sin(Date.now() * 0.002 + s.position.x) * 0.005;
-            s.rotation.y += 0.01;
+            // Gentle Bobbing
+            s.position.y += Math.sin(Date.now() * 0.002 + s.position.x * 10) * 0.002;
+            s.rotation.z += 0.002;
         }
     });
 
-    // 2. Target Box Recovery (Elastic)
-    targets.forEach(t => {
-        t.mesh.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
-    });
+    // 2. Targets Recovery
+    targets.forEach(t => t.mesh.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1));
 
     // 3. Particles
     for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         p.position.add(p.userData.vel);
-        p.scale.multiplyScalar(0.9);
+        p.scale.multiplyScalar(0.92);
         p.userData.life -= 0.05;
         if (p.userData.life <= 0) {
             scene.remove(p);
@@ -439,13 +423,13 @@ function animate() {
     renderer.render(scene, camera);
 }
 
-// Handle Resize
+// Resize
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// Start
+// Init
 game.startSetup();
 animate();

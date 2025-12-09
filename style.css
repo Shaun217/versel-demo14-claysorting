@@ -1,12 +1,11 @@
 :root {
-    /* Macaron Palette for UI */
-    --bg-color: #2D2D3A;   /* Midnight Blue/Grey */
+    --bg-color: #2D2D3A;
     --card-bg: #ffffff;
     --text-main: #4A4A5E;
     --accent-pink: #FFB7B2;
     --accent-blue: #A2E1DB;
     --accent-yellow: #E2F0CB;
-    --shadow: 0 10px 30px rgba(0,0,0,0.2);
+    --shadow: 0 10px 30px rgba(0,0,0,0.25);
 }
 
 body {
@@ -24,30 +23,25 @@ body {
 
 #ui-layer {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;
-    pointer-events: none; /* Let clicks pass to 3D when no card is active */
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    pointer-events: none;
+    display: flex; justify-content: center; align-items: center;
 }
 
-/* --- Cards & Panels --- */
 .card {
     background: var(--card-bg);
-    padding: 40px;
+    padding: 30px 40px;
     border-radius: 30px;
     text-align: center;
     box-shadow: var(--shadow);
-    display: none; /* Hidden by default */
+    display: none;
     flex-direction: column;
     gap: 20px;
     pointer-events: auto;
     animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     min-width: 300px;
-    max-width: 90%;
 }
-
 .card.active { display: flex; }
-.card.wide { min-width: 400px; }
+.card.wide { min-width: 360px; }
 
 @keyframes popIn {
     from { opacity: 0; transform: scale(0.8) translateY(20px); }
@@ -59,8 +53,6 @@ h2 { margin: 0; color: var(--text-main); font-size: 2rem; }
 .subtitle { color: #888; margin-top: -10px; font-weight: bold; }
 p { color: #666; margin: 0; }
 
-/* --- Inputs & Buttons --- */
-.input-group { margin: 10px 0; }
 .stepper {
     display: flex; justify-content: center; align-items: center; gap: 20px;
     font-size: 2rem; font-weight: bold; color: var(--text-main); margin-top: 10px;
@@ -72,58 +64,48 @@ p { color: #666; margin: 0; }
 
 input[type="text"] {
     border: 2px solid #eee; border-radius: 15px; padding: 15px;
-    font-size: 1.2rem; text-align: center; font-family: inherit; width: 100%; box-sizing: border-box;
-    outline: none; transition: border 0.3s;
+    font-size: 1.2rem; text-align: center; width: 100%; box-sizing: border-box; outline: none;
 }
 input[type="text"]:focus { border-color: var(--accent-blue); }
 
 .btn-primary {
     background: var(--text-main); color: white; border: none;
     padding: 15px 30px; border-radius: 50px; font-size: 1.1rem;
-    font-family: inherit; font-weight: bold; cursor: pointer;
-    box-shadow: 0 5px 15px rgba(74, 74, 94, 0.3);
+    font-weight: bold; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
     transition: transform 0.1s;
 }
 .btn-primary:active { transform: scale(0.95); }
 .btn-secondary {
     background: #eee; color: #666; border: none;
-    padding: 15px 30px; border-radius: 50px; font-size: 1rem;
-    font-family: inherit; font-weight: bold; cursor: pointer;
+    padding: 15px 30px; border-radius: 50px; font-weight: bold; cursor: pointer;
 }
 
-/* --- HUD --- */
 #hud {
     position: absolute; top: 20px; left: 0; width: 100%;
     display: none; justify-content: space-between; padding: 0 20px; box-sizing: border-box;
     pointer-events: none;
 }
 .pill {
-    background: white; padding: 10px 25px; border-radius: 50px;
+    background: white; padding: 10px 20px; border-radius: 50px;
     box-shadow: var(--shadow); display: flex; align-items: center; gap: 10px;
     font-weight: bold; color: var(--text-main); font-size: 1.2rem;
 }
 
-.score-big { font-size: 4rem; font-weight: bold; color: var(--accent-pink); }
+.score-big { font-size: 3.5rem; font-weight: bold; color: var(--accent-blue); }
 
-/* --- Podium --- */
 #podium-container {
     display: flex; align-items: flex-end; justify-content: center; gap: 15px;
     height: 180px; margin-top: 20px;
 }
-.podium-step {
-    display: flex; flex-direction: column; align-items: center; width: 80px;
-}
+.podium-step { display: flex; flex-direction: column; align-items: center; width: 80px; }
 .podium-bar {
     width: 100%; border-radius: 10px 10px 0 0; 
     display: flex; align-items: flex-end; justify-content: center;
     padding-bottom: 10px; color: white; font-weight: bold;
     box-shadow: inset 0 -5px 0 rgba(0,0,0,0.1);
 }
-.rank-1 .podium-bar { height: 120px; background: var(--accent-yellow); color: #555;}
+.rank-1 .podium-bar { height: 120px; background: var(--accent-yellow); color: #555; }
 .rank-2 .podium-bar { height: 90px; background: var(--accent-blue); }
 .rank-3 .podium-bar { height: 60px; background: var(--accent-pink); }
-.podium-name {
-    margin-bottom: 5px; font-weight: bold; font-size: 0.9rem;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
-}
+.podium-name { margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;}
 .podium-score { font-size: 0.8rem; opacity: 0.8; margin-top: 5px;}
