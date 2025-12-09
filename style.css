@@ -1,0 +1,129 @@
+:root {
+    /* Macaron Palette for UI */
+    --bg-color: #2D2D3A;   /* Midnight Blue/Grey */
+    --card-bg: #ffffff;
+    --text-main: #4A4A5E;
+    --accent-pink: #FFB7B2;
+    --accent-blue: #A2E1DB;
+    --accent-yellow: #E2F0CB;
+    --shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: var(--bg-color);
+    font-family: 'Varela Round', sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+#canvas-container {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
+}
+
+#ui-layer {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;
+    pointer-events: none; /* Let clicks pass to 3D when no card is active */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* --- Cards & Panels --- */
+.card {
+    background: var(--card-bg);
+    padding: 40px;
+    border-radius: 30px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    display: none; /* Hidden by default */
+    flex-direction: column;
+    gap: 20px;
+    pointer-events: auto;
+    animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    min-width: 300px;
+    max-width: 90%;
+}
+
+.card.active { display: flex; }
+.card.wide { min-width: 400px; }
+
+@keyframes popIn {
+    from { opacity: 0; transform: scale(0.8) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+h1 { margin: 0; color: var(--text-main); font-size: 2.5rem; }
+h2 { margin: 0; color: var(--text-main); font-size: 2rem; }
+.subtitle { color: #888; margin-top: -10px; font-weight: bold; }
+p { color: #666; margin: 0; }
+
+/* --- Inputs & Buttons --- */
+.input-group { margin: 10px 0; }
+.stepper {
+    display: flex; justify-content: center; align-items: center; gap: 20px;
+    font-size: 2rem; font-weight: bold; color: var(--text-main); margin-top: 10px;
+}
+.stepper button {
+    width: 40px; height: 40px; border-radius: 50%; border: 2px solid #eee;
+    background: white; cursor: pointer; font-size: 1.2rem; color: #666;
+}
+
+input[type="text"] {
+    border: 2px solid #eee; border-radius: 15px; padding: 15px;
+    font-size: 1.2rem; text-align: center; font-family: inherit; width: 100%; box-sizing: border-box;
+    outline: none; transition: border 0.3s;
+}
+input[type="text"]:focus { border-color: var(--accent-blue); }
+
+.btn-primary {
+    background: var(--text-main); color: white; border: none;
+    padding: 15px 30px; border-radius: 50px; font-size: 1.1rem;
+    font-family: inherit; font-weight: bold; cursor: pointer;
+    box-shadow: 0 5px 15px rgba(74, 74, 94, 0.3);
+    transition: transform 0.1s;
+}
+.btn-primary:active { transform: scale(0.95); }
+.btn-secondary {
+    background: #eee; color: #666; border: none;
+    padding: 15px 30px; border-radius: 50px; font-size: 1rem;
+    font-family: inherit; font-weight: bold; cursor: pointer;
+}
+
+/* --- HUD --- */
+#hud {
+    position: absolute; top: 20px; left: 0; width: 100%;
+    display: none; justify-content: space-between; padding: 0 20px; box-sizing: border-box;
+    pointer-events: none;
+}
+.pill {
+    background: white; padding: 10px 25px; border-radius: 50px;
+    box-shadow: var(--shadow); display: flex; align-items: center; gap: 10px;
+    font-weight: bold; color: var(--text-main); font-size: 1.2rem;
+}
+
+.score-big { font-size: 4rem; font-weight: bold; color: var(--accent-pink); }
+
+/* --- Podium --- */
+#podium-container {
+    display: flex; align-items: flex-end; justify-content: center; gap: 15px;
+    height: 180px; margin-top: 20px;
+}
+.podium-step {
+    display: flex; flex-direction: column; align-items: center; width: 80px;
+}
+.podium-bar {
+    width: 100%; border-radius: 10px 10px 0 0; 
+    display: flex; align-items: flex-end; justify-content: center;
+    padding-bottom: 10px; color: white; font-weight: bold;
+    box-shadow: inset 0 -5px 0 rgba(0,0,0,0.1);
+}
+.rank-1 .podium-bar { height: 120px; background: var(--accent-yellow); color: #555;}
+.rank-2 .podium-bar { height: 90px; background: var(--accent-blue); }
+.rank-3 .podium-bar { height: 60px; background: var(--accent-pink); }
+.podium-name {
+    margin-bottom: 5px; font-weight: bold; font-size: 0.9rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+.podium-score { font-size: 0.8rem; opacity: 0.8; margin-top: 5px;}

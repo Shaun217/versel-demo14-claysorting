@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Clay Sorter 3D</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Varela+Round&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div id="ui-layer">
+        
+        <div id="screen-setup" class="card active">
+            <h1>Clay Sorter</h1>
+            <p class="subtitle">Party Edition</p>
+            
+            <div class="input-group">
+                <label>How many players?</label>
+                <div class="stepper">
+                    <button onclick="updatePlayers(-1)">-</button>
+                    <span id="player-count-display">2</span>
+                    <button onclick="updatePlayers(1)">+</button>
+                </div>
+            </div>
+            
+            <button class="btn-primary" id="btn-setup-confirm">Next</button>
+        </div>
+
+        <div id="screen-ready" class="card">
+            <h2 id="ready-player-label">Player 1</h2>
+            <p>Enter your name</p>
+            <input type="text" id="input-name" placeholder="Name" maxlength="8">
+            <button class="btn-primary" id="btn-start-game">Start!</button>
+        </div>
+
+        <div id="hud">
+            <div class="pill">
+                <span class="icon">⏳</span>
+                <span id="hud-timer">60</span>
+            </div>
+            <div class="pill">
+                <span class="icon">✨</span>
+                <span id="hud-score">0</span>
+            </div>
+        </div>
+
+        <div id="screen-transition" class="card">
+            <h2>Time's Up!</h2>
+            <div class="score-big" id="round-score">0</div>
+            <p>points</p>
+            <button class="btn-primary" id="btn-next-player">Next Player</button>
+        </div>
+
+        <div id="screen-leaderboard" class="card wide">
+            <h2>🏆 Final Ranking</h2>
+            <div id="podium-container">
+                </div>
+            <button class="btn-secondary" onclick="location.reload()">Play Again</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
