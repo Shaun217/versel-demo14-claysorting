@@ -6,7 +6,7 @@ const COLORS = {
     green: 0x27AE60,// Tree Green
     brown: 0x8B4513,// Tree Trunk
     white: 0xFDF8F5,
-    darkIcon: 0x2C3E50
+    darkIcon: 0x222222 // Dark silhouette for the "hole"
 };
 
 const SHAPE_COUNT = 10;
@@ -52,11 +52,13 @@ const game = {
     },
 
     showScreen: (name) => {
+        // Hide all
         Object.values(game.screens).forEach(el => {
             el.classList.remove('active');
             el.style.display = 'none'; 
         });
         
+        // Show specific
         if(name === 'hud') {
             game.screens.hud.style.display = 'flex';
         } else {
@@ -65,25 +67,18 @@ const game = {
         }
     },
 
-    init: () => {
-        game.showScreen('start');
-    },
-
     startRound: () => {
         const nameInput = document.getElementById('input-name').value;
         game.playerName = nameInput || "Santa's Helper";
         
-        // Reset Data
         game.remaining = SHAPE_COUNT;
         document.getElementById('hud-remaining').innerText = game.remaining;
         
         game.showScreen('hud');
         
-        // Spawn 3D objects
         scene3D.clearShapes();
         scene3D.spawnShapes(SHAPE_COUNT);
         
-        // Start Timer
         game.startTime = Date.now();
         clearInterval(game.timerInterval);
         
@@ -125,7 +120,7 @@ scene.background = new THREE.Color(COLORS.bg);
 scene.fog = new THREE.Fog(COLORS.bg, 20, 50);
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 1, 100);
-camera.position.set(0, 7, 18); 
+camera.position.set(0, 8, 18); 
 camera.lookAt(0, 0, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -134,7 +129,6 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 canvas.appendChild(renderer.domElement);
 
-// Lights
 const ambient = new THREE.AmbientLight(0xffffff, 0.6);
 scene.add(ambient);
 const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -142,162 +136,155 @@ dirLight.position.set(5, 12, 8);
 dirLight.castShadow = true;
 scene.add(dirLight);
 
-// Materials (Matte Clay Look)
+// Materials
 const mats = {
     red: new THREE.MeshStandardMaterial({ color: COLORS.red, roughness: 0.6, metalness: 0.1 }),
     gold: new THREE.MeshStandardMaterial({ color: COLORS.gold, roughness: 0.4, metalness: 0.6 }),
     green: new THREE.MeshStandardMaterial({ color: COLORS.green, roughness: 0.8, metalness: 0.0 }),
     brown: new THREE.MeshStandardMaterial({ color: COLORS.brown, roughness: 0.9 }),
     white: new THREE.MeshStandardMaterial({ color: COLORS.white, roughness: 1.0 }),
-    icon: new THREE.MeshBasicMaterial({ color: COLORS.darkIcon })
+    icon: new THREE.MeshBasicMaterial({ color: COLORS.darkIcon }) // Dark silhouette
 };
 
-// --- Objects Builder ---
+// --- Geometry Builder ---
 const shapes = [];
 const particles = [];
 const targets = [];
 
-// 核心修改：用组合几何体创建更像的物体
-function createGeometry(type) {
+// 1. Christmas Tree (Stacked Cones)
+function buildTree() {
     const group = new THREE.Group();
-    
-    if (type === 'tree') {
-        // 1. Trunk
-        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.5), mats.brown);
-        trunk.position.y = -0.6;
-        trunk.castShadow = true;
-        group.add(trunk);
-
-        // 2. Layers of Leaves
-        const l1 = new THREE.Mesh(new THREE.ConeGeometry(0.6, 0.6, 8), mats.green);
-        l1.position.y = -0.3;
-        l1.castShadow = true;
-        group.add(l1);
-
-        const l2 = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.5, 8), mats.green);
-        l2.position.y = 0.0;
-        l2.castShadow = true;
-        group.add(l2);
-
-        const l3 = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.4, 8), mats.green);
-        l3.position.y = 0.3;
-        l3.castShadow = true;
-        group.add(l3);
-
-        // 3. Star on top
-        const star = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), mats.gold);
-        star.position.y = 0.55;
-        group.add(star);
-    } 
-    else if (type === 'bell') {
-        // 1. Bell Body (Open bottom)
-        const bell = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.5, 0.7, 16), mats.gold);
-        bell.castShadow = true;
-        group.add(bell);
-
-        // 2. Bell Rim (Torus)
-        const rim = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.05, 8, 16), mats.gold);
-        rim.rotation.x = Math.PI / 2;
-        rim.position.y = -0.35;
-        group.add(rim);
-
-        // 3. Handle (Top ring)
-        const handle = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.03, 8, 16), mats.gold);
-        handle.position.y = 0.35;
-        group.add(handle);
-
-        // 4. Clapper (Bottom ball)
-        const clapper = new THREE.Mesh(new THREE.SphereGeometry(0.15), mats.gold);
-        clapper.position.y = -0.3;
-        group.add(clapper);
-    } 
-    else if (type === 'ball') {
-        // 1. Red Sphere
-        const ball = new THREE.Mesh(new THREE.SphereGeometry(0.5, 32, 32), mats.red);
-        ball.castShadow = true;
-        group.add(ball);
-
-        // 2. Gold Cap
-        const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.15, 16), mats.gold);
-        cap.position.y = 0.5;
-        group.add(cap);
-
-        // 3. Ring
-        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.02, 8, 16), mats.gold);
-        ring.position.y = 0.6;
-        group.add(ring);
-    }
-    
+    // Trunk
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.6), mats.brown);
+    trunk.position.y = -0.7;
+    trunk.castShadow = true;
+    group.add(trunk);
+    // Leaves
+    const sizes = [[0.7, 0.8, -0.3], [0.55, 0.7, 0.1], [0.35, 0.6, 0.5]];
+    sizes.forEach(s => {
+        const cone = new THREE.Mesh(new THREE.ConeGeometry(s[0], s[1], 8), mats.green);
+        cone.position.y = s[2];
+        cone.castShadow = true;
+        group.add(cone);
+    });
+    // Star
+    const star = new THREE.Mesh(new THREE.SphereGeometry(0.12), mats.gold);
+    star.position.y = 0.85;
+    group.add(star);
     return group;
 }
 
-// Create Targets (Boxes with Icons)
+// 2. Bell (Tapered Cylinder + Details)
+function buildBell() {
+    const group = new THREE.Group();
+    // Body
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.6, 0.8, 16), mats.gold);
+    body.castShadow = true;
+    group.add(body);
+    // Rim
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.08, 4, 16), mats.gold);
+    rim.rotation.x = Math.PI/2;
+    rim.position.y = -0.4;
+    group.add(rim);
+    // Clapper
+    const clapper = new THREE.Mesh(new THREE.SphereGeometry(0.2), mats.gold);
+    clapper.position.y = -0.4;
+    group.add(clapper);
+    // Top Ring
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.04, 4, 16), mats.gold);
+    ring.position.y = 0.45;
+    group.add(ring);
+    return group;
+}
+
+// 3. Ornament Ball (Sphere + Cap)
+function buildBall() {
+    const group = new THREE.Group();
+    // Sphere
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(0.6, 32, 32), mats.red);
+    ball.castShadow = true;
+    group.add(ball);
+    // Cap
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.2, 16), mats.gold);
+    cap.position.y = 0.6;
+    group.add(cap);
+    // Ring
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.02, 4, 16), mats.gold);
+    ring.position.y = 0.7;
+    group.add(ring);
+    return group;
+}
+
+function createGeometry(type) {
+    if (type === 'tree') return buildTree();
+    if (type === 'bell') return buildBell();
+    if (type === 'ball') return buildBall();
+    return new THREE.Group();
+}
+
+// --- Target Boxes (Holes) ---
 function createTarget(x, type) {
     const group = new THREE.Group();
     group.position.set(x, -3.5, 0);
 
-    // Box Body
-    const box = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.2, 2.2), mats.white);
+    // White Box
+    const box = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.2, 2.4), mats.white);
     box.receiveShadow = true;
     group.add(box);
 
-    // Icon representation
+    // The "Hole" (Cross Section / Silhouette)
     let icon;
     if (type === 'tree') {
-        // Triangle Icon
-        icon = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.05, 3), mats.icon);
-        icon.rotation.x = -Math.PI / 2; // Lie flat
-        icon.rotation.z = Math.PI; // Point up
+        // Triangle shape
+        const shape = new THREE.Shape();
+        shape.moveTo(0, 0.6);
+        shape.lineTo(0.5, -0.4);
+        shape.lineTo(-0.5, -0.4);
+        icon = new THREE.Mesh(new THREE.ShapeGeometry(shape), mats.icon);
     } 
     else if (type === 'bell') {
-        // Bell Icon shape
-        icon = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.6, 0.05, 16), mats.icon);
+        // Bell profile (Trapezoid-ish)
+        const shape = new THREE.Shape();
+        shape.moveTo(-0.15, 0.4);
+        shape.lineTo(0.15, 0.4);
+        shape.lineTo(0.4, -0.4);
+        shape.lineTo(-0.4, -0.4);
+        icon = new THREE.Mesh(new THREE.ShapeGeometry(shape), mats.icon);
     } 
     else {
-        // Circle Icon
-        icon = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.05, 32), mats.icon);
+        // Circle (Ball) profile
+        icon = new THREE.Mesh(new THREE.CircleGeometry(0.5, 32), mats.icon);
     }
 
-    icon.position.y = 0.61;
+    // Position icon flat on top
+    icon.rotation.x = -Math.PI / 2;
+    icon.position.y = 0.61; // Slightly above box
     group.add(icon);
 
     scene.add(group);
     targets.push({ type, x, mesh: group });
 }
 
-// Floor
-const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(60, 60),
-    new THREE.MeshStandardMaterial({ color: COLORS.bg, roughness: 1 })
-);
-floor.rotation.x = -Math.PI/2;
-floor.position.y = -5;
-floor.receiveShadow = true;
-scene.add(floor);
-
+// Position Targets
 createTarget(-3, 'tree');
 createTarget(0, 'bell');
 createTarget(3, 'ball');
 
-// Spawn Logic
+// --- Spawning Logic ---
 const scene3D = {
     spawnShapes: (count) => {
         const types = ['tree', 'bell', 'ball'];
-        
         for(let i=0; i<count; i++) {
             const type = types[Math.floor(Math.random() * types.length)];
             const meshGroup = createGeometry(type);
             
             // Random Pos
             const posX = (Math.random() - 0.5) * 8; 
-            const posY = 3 + Math.random() * 4;  
-            const posZ = (Math.random() - 0.5) * 2; 
+            const posY = 3 + Math.random() * 5;  
+            const posZ = (Math.random() - 0.5) * 3; 
             
             meshGroup.position.set(posX, posY, posZ);
-            // Random rotation
             meshGroup.rotation.set(Math.random(), Math.random(), Math.random());
-            
-            // User Data
             meshGroup.userData = { type, originalPos: meshGroup.position.clone(), isReturning: false };
             
             scene.add(meshGroup);
@@ -334,21 +321,16 @@ let draggedObject = null;
 function onDown(x, y) {
     mouse.x = (x / window.innerWidth) * 2 - 1;
     mouse.y = -(y / window.innerHeight) * 2 + 1;
-
     raycaster.setFromCamera(mouse, camera);
-    
-    // Check intersection (recursive true to hit parts of groups)
-    const intersects = raycaster.intersectObjects(shapes, true);
+    const intersects = raycaster.intersectObjects(shapes, true); // true for recursive
 
     if (intersects.length > 0) {
-        // We hit a child mesh, need to find the parent group
+        // Traverse up to find the main Group
         let obj = intersects[0].object;
         while(obj.parent && obj.parent.type !== 'Scene') {
-            if(obj.userData.type) break; // Found the main group
+            if(obj.userData.type) break; 
             obj = obj.parent;
         }
-        
-        // Ensure we grabbed the group with logic
         if(obj.userData && obj.userData.type) {
             draggedObject = obj;
             draggedObject.userData.isReturning = false;
@@ -358,26 +340,23 @@ function onDown(x, y) {
 
 function onMove(x, y) {
     if (!draggedObject) return;
-
     mouse.x = (x / window.innerWidth) * 2 - 1;
     mouse.y = -(y / window.innerHeight) * 2 + 1;
-
     raycaster.setFromCamera(mouse, camera);
     const intersectPoint = new THREE.Vector3();
-    const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-    raycaster.ray.intersectPlane(plane, intersectPoint);
+    raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), intersectPoint);
     
     if (intersectPoint) {
         draggedObject.position.copy(intersectPoint);
         draggedObject.position.z = 2; // Pull forward
+        // Add slight rotation for fun
         draggedObject.rotation.x += 0.05;
-        draggedObject.rotation.y += 0.05;
+        draggedObject.rotation.z += 0.02;
     }
 }
 
 function onUp() {
     if (!draggedObject) return;
-
     let match = false;
     for (const t of targets) {
         const dx = draggedObject.position.x - t.x;
@@ -388,25 +367,20 @@ function onUp() {
             match = true;
             game.onShapeSorted();
             
-            // Explosion color
-            let color = COLORS.white;
-            if(draggedObject.userData.type === 'tree') color = COLORS.green;
-            if(draggedObject.userData.type === 'bell') color = COLORS.gold;
-            if(draggedObject.userData.type === 'ball') color = COLORS.red;
-
-            scene3D.createExplosion(draggedObject.position, color);
+            let c = COLORS.white;
+            if(t.type==='tree') c = COLORS.green;
+            if(t.type==='bell') c = COLORS.gold;
+            if(t.type==='ball') c = COLORS.red;
+            
+            scene3D.createExplosion(draggedObject.position, c);
             scene.remove(draggedObject);
             shapes.splice(shapes.indexOf(draggedObject), 1);
             
-            t.mesh.scale.set(1.2, 0.8, 1.2);
+            t.mesh.scale.set(1.1, 0.9, 1.1); // Squish effect
             break;
         }
     }
-
-    if (!match) {
-        draggedObject.userData.isReturning = true;
-    }
-
+    if (!match) draggedObject.userData.isReturning = true;
     draggedObject = null;
 }
 
@@ -417,34 +391,26 @@ window.addEventListener('touchstart', e => { e.preventDefault(); onDown(e.touche
 window.addEventListener('touchmove', e => { e.preventDefault(); onMove(e.touches[0].clientX, e.touches[0].clientY); }, {passive: false});
 window.addEventListener('touchend', onUp);
 
-// --- Animation Loop ---
 function animate() {
     requestAnimationFrame(animate);
-
     shapes.forEach(s => {
         if (s === draggedObject) return;
         if (s.userData.isReturning) {
             s.position.lerp(s.userData.originalPos, 0.1);
             if (s.position.distanceTo(s.userData.originalPos) < 0.1) s.userData.isReturning = false;
         } else {
-            s.position.y += Math.sin(Date.now() * 0.002 + s.position.x * 10) * 0.002;
-            s.rotation.z += 0.002;
+            s.position.y += Math.sin(Date.now() * 0.002 + s.position.x) * 0.005;
+            s.rotation.y += 0.01;
         }
     });
-
     targets.forEach(t => t.mesh.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1));
-
     for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         p.position.add(p.userData.vel);
-        p.scale.multiplyScalar(0.92);
+        p.scale.multiplyScalar(0.9);
         p.userData.life -= 0.05;
-        if (p.userData.life <= 0) {
-            scene.remove(p);
-            particles.splice(i, 1);
-        }
+        if (p.userData.life <= 0) { scene.remove(p); particles.splice(i, 1); }
     }
-
     renderer.render(scene, camera);
 }
 

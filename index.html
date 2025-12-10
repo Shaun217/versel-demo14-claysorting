@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Clay Sorter - Speed Run</title>
+    <title>Christmas Sorter</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Varela+Round&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -14,28 +14,16 @@
 
     <div id="ui-layer">
         
-        <div id="screen-setup" class="card active">
-            <h1>Clay Sorter</h1>
-            <p class="subtitle">Speed Run Mode</p>
-            <p style="margin-top:10px; opacity:0.7">Clear 10 shapes as fast as possible!</p>
+        <div id="screen-start" class="card active">
+            <h1>Christmas Sorter</h1>
+            <p class="subtitle">Holiday Challenge</p>
+            <p style="margin-top:15px; opacity:0.8">Help Santa sort the decorations!</p>
             
             <div class="input-group">
-                <label>Players</label>
-                <div class="stepper">
-                    <button onclick="updatePlayers(-1)">-</button>
-                    <span id="player-count-display">2</span>
-                    <button onclick="updatePlayers(1)">+</button>
-                </div>
+                <input type="text" id="input-name" placeholder="Enter Your Name" maxlength="12">
             </div>
             
-            <button class="btn-primary" id="btn-setup-confirm">Next</button>
-        </div>
-
-        <div id="screen-ready" class="card">
-            <h2 id="ready-player-label">Player 1</h2>
-            <p>Enter your name</p>
-            <input type="text" id="input-name" placeholder="Name" maxlength="8">
-            <button class="btn-primary" id="btn-start-game">Start!</button>
+            <button class="btn-primary" id="btn-start">Start Game</button>
         </div>
 
         <div id="hud">
@@ -44,23 +32,19 @@
                 <span id="hud-timer">0.0s</span>
             </div>
             <div class="pill">
-                <span class="icon">📦</span>
+                <span class="icon">🎁</span>
                 <span id="hud-remaining">10</span>
             </div>
         </div>
 
-        <div id="screen-transition" class="card">
-            <h2>Finished!</h2>
-            <div class="score-big" id="round-time">0.0s</div>
-            <p>Time Taken</p>
-            <button class="btn-primary" id="btn-next-player">Next Player</button>
+        <div id="screen-result" class="card">
+            <h2>Mission Complete!</h2>
+            <p id="result-name" class="subtitle" style="font-size: 1.5rem; color: #2C3E50; margin-bottom: 5px;">Player</p>
+            <div class="score-big" id="result-time">0.0s</div>
+            <p>Total Time</p>
+            <button class="btn-primary" onclick="location.reload()">Play Again</button>
         </div>
 
-        <div id="screen-leaderboard" class="card wide">
-            <h2>🏆 Speed Ranking</h2>
-            <div id="podium-container"></div>
-            <button class="btn-secondary" onclick="location.reload()">Play Again</button>
-        </div>
     </div>
 
     <script src="script.js"></script>
