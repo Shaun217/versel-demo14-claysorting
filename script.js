@@ -154,15 +154,13 @@ const shapes = [];
 const particles = [];
 const targets = [];
 
-// 1. Christmas Tree Geometry
+// 1. Christmas Tree
 function buildTree() {
     const group = new THREE.Group();
-    // Trunk
     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.6), mats.brown);
     trunk.position.y = -0.7;
     trunk.castShadow = true;
     group.add(trunk);
-    // Leaves
     const sizes = [[0.7, 0.8, -0.3], [0.55, 0.7, 0.1], [0.35, 0.6, 0.5]];
     sizes.forEach(s => {
         const cone = new THREE.Mesh(new THREE.ConeGeometry(s[0], s[1], 8), mats.green);
@@ -170,14 +168,13 @@ function buildTree() {
         cone.castShadow = true;
         group.add(cone);
     });
-    // Star
     const star = new THREE.Mesh(new THREE.SphereGeometry(0.12), mats.gold);
     star.position.y = 0.85;
     group.add(star);
     return group;
 }
 
-// 2. Bell Geometry
+// 2. Bell
 function buildBell() {
     const group = new THREE.Group();
     const body = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.6, 0.8, 16), mats.gold);
@@ -196,7 +193,7 @@ function buildBell() {
     return group;
 }
 
-// 3. Ball Geometry
+// 3. Ball
 function buildBall() {
     const group = new THREE.Group();
     const ball = new THREE.Mesh(new THREE.SphereGeometry(0.6, 32, 32), mats.red);
@@ -218,7 +215,7 @@ function createGeometry(type) {
     return new THREE.Group();
 }
 
-// --- Target Boxes (Complex Silhouettes) ---
+// --- Target Boxes (Improved Silhouettes) ---
 function createTarget(x, type) {
     const group = new THREE.Group();
     group.position.set(x, -3.5, 0);
@@ -231,39 +228,43 @@ function createTarget(x, type) {
     const shape = new THREE.Shape();
 
     if (type === 'tree') {
-        // Detailed Tree Silhouette
-        shape.moveTo(0, 0.7); // Top tip
-        shape.lineTo(0.2, 0.4); 
-        shape.lineTo(0.1, 0.4);
-        shape.lineTo(0.35, 0.0);
-        shape.lineTo(0.15, 0.0);
-        shape.lineTo(0.5, -0.4); // Bottom leaf edge
-        shape.lineTo(0.1, -0.4);
-        shape.lineTo(0.1, -0.6); // Trunk right
-        shape.lineTo(-0.1, -0.6);// Trunk left
-        shape.lineTo(-0.1, -0.4);
-        shape.lineTo(-0.5, -0.4);
-        shape.lineTo(-0.15, 0.0);
-        shape.lineTo(-0.35, 0.0);
-        shape.lineTo(-0.1, 0.4);
-        shape.lineTo(-0.2, 0.4);
+        // Tree Silhouette
+        shape.moveTo(0, 0.7); 
+        shape.lineTo(0.2, 0.4); shape.lineTo(0.1, 0.4);
+        shape.lineTo(0.35, 0.0); shape.lineTo(0.15, 0.0);
+        shape.lineTo(0.5, -0.4); shape.lineTo(0.1, -0.4);
+        shape.lineTo(0.1, -0.6); shape.lineTo(-0.1, -0.6);
+        shape.lineTo(-0.1, -0.4); shape.lineTo(-0.5, -0.4);
+        shape.lineTo(-0.15, 0.0); shape.lineTo(-0.35, 0.0);
+        shape.lineTo(-0.1, 0.4); shape.lineTo(-0.2, 0.4);
         icon = new THREE.Mesh(new THREE.ShapeGeometry(shape), mats.icon);
     } 
     else if (type === 'bell') {
-        // Detailed Bell Silhouette
-        shape.moveTo(0, 0.5); // Top center
-        shape.absarc(0, 0.5, 0.15, Math.PI, 0); // Handle
-        shape.lineTo(0.15, 0.4);
-        shape.quadraticCurveTo(0.2, 0.0, 0.5, -0.4); // Bell flare right
-        shape.lineTo(0.2, -0.4);
-        shape.absarc(0, -0.4, 0.2, 0, Math.PI); // Clapper bottom
-        shape.lineTo(-0.5, -0.4); // Bell flare left
-        shape.quadraticCurveTo(-0.2, 0.0, -0.15, 0.4);
+        // IMPROVED Bell Silhouette (Curvier)
+        shape.moveTo(0, 0.55); // Top Ring center
+        // Draw Ring
+        shape.absarc(0, 0.55, 0.12, Math.PI, 0); 
+        
+        // Bell Body Start
+        shape.lineTo(0.15, 0.45);
+        // Curve body outwards (Bezier)
+        shape.bezierCurveTo(0.2, 0.25, 0.4, -0.1, 0.55, -0.35);
+        
+        // Bottom Clapper Area
+        shape.lineTo(0.15, -0.35);
+        // Clapper bulb
+        shape.absarc(0, -0.35, 0.15, 0, Math.PI);
+        
+        // Left side return
+        shape.lineTo(-0.55, -0.35);
+        // Curve body back up
+        shape.bezierCurveTo(-0.4, -0.1, -0.2, 0.25, -0.15, 0.45);
+        
         icon = new THREE.Mesh(new THREE.ShapeGeometry(shape), mats.icon);
     } 
     else {
-        // Ball Silhouette (Circle + Cap)
-        shape.absarc(0, -0.1, 0.5, 0, Math.PI * 2); // Main Ball
+        // Ball Silhouette
+        shape.absarc(0, -0.1, 0.5, 0, Math.PI * 2);
         // Cap
         shape.moveTo(-0.15, 0.35);
         shape.lineTo(0.15, 0.35);
@@ -278,7 +279,7 @@ function createTarget(x, type) {
 
     icon.rotation.x = -Math.PI / 2;
     icon.position.y = 0.61;
-    // Scale down slightly to fit nicely on box
+    // Scale down a bit to fit on box
     icon.scale.set(0.9, 0.9, 0.9);
     group.add(icon);
 
@@ -290,7 +291,7 @@ createTarget(-3, 'tree');
 createTarget(0, 'bell');
 createTarget(3, 'ball');
 
-// --- Spawning (Fixed Height Range) ---
+// --- Spawning ---
 const scene3D = {
     spawnShapes: (count) => {
         const types = ['tree', 'bell', 'ball'];
@@ -298,9 +299,8 @@ const scene3D = {
             const type = types[Math.floor(Math.random() * types.length)];
             const meshGroup = createGeometry(type);
             
-            // Modified: Center-Upper screen, but not overlapping header
+            // Spawn Height: 1.0 to 4.5 (Safe zone)
             const posX = (Math.random() - 0.5) * 8; 
-            // Range: 1.0 to 4.5 (Above boxes at -3.5, below HUD at ~6)
             const posY = 1.0 + Math.random() * 3.5;  
             const posZ = (Math.random() - 0.5) * 2; 
             
