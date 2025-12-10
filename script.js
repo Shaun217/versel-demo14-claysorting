@@ -6,7 +6,7 @@ const COLORS = {
     green: 0x27AE60,// Tree Green
     brown: 0x8B4513,// Tree Trunk
     white: 0xFDF8F5,
-    darkIcon: 0x222222 // Dark silhouette
+    darkIcon: 0x1a1a1a // Deep dark silhouette
 };
 
 const SHAPE_COUNT = 10;
@@ -52,13 +52,11 @@ const game = {
     },
 
     showScreen: (name) => {
-        // Hide all screens
         Object.values(game.screens).forEach(el => {
             el.classList.remove('active');
             el.style.display = 'none'; 
         });
         
-        // Show target screen
         if(name === 'hud') {
             game.screens.hud.style.display = 'flex';
         } else {
@@ -67,7 +65,6 @@ const game = {
         }
     },
 
-    // Initialize: Show Start Screen directly
     init: () => {
         game.showScreen('start');
     },
@@ -76,18 +73,14 @@ const game = {
         const nameInput = document.getElementById('input-name').value;
         game.playerName = nameInput || "Santa's Helper";
         
-        // Reset Game Data
         game.remaining = SHAPE_COUNT;
         document.getElementById('hud-remaining').innerText = game.remaining;
         
-        // Show HUD
         game.showScreen('hud');
         
-        // Spawn 3D objects
         scene3D.clearShapes();
         scene3D.spawnShapes(SHAPE_COUNT);
         
-        // Start Timer
         game.startTime = Date.now();
         clearInterval(game.timerInterval);
         
@@ -120,7 +113,6 @@ const game = {
     }
 };
 
-// Bind Button Event
 document.getElementById('btn-start').onclick = game.startRound;
 
 // --- Three.js Setup ---
@@ -157,12 +149,12 @@ const mats = {
     icon: new THREE.MeshBasicMaterial({ color: COLORS.darkIcon })
 };
 
-// --- Geometry Builder ---
+// --- Objects Builder ---
 const shapes = [];
 const particles = [];
 const targets = [];
 
-// 1. Christmas Tree
+// 1. Christmas Tree Geometry
 function buildTree() {
     const group = new THREE.Group();
     // Trunk
@@ -170,7 +162,7 @@ function buildTree() {
     trunk.position.y = -0.7;
     trunk.castShadow = true;
     group.add(trunk);
-    // Leaves (3 Cones)
+    // Leaves
     const sizes = [[0.7, 0.8, -0.3], [0.55, 0.7, 0.1], [0.35, 0.6, 0.5]];
     sizes.forEach(s => {
         const cone = new THREE.Mesh(new THREE.ConeGeometry(s[0], s[1], 8), mats.green);
@@ -185,41 +177,34 @@ function buildTree() {
     return group;
 }
 
-// 2. Bell
+// 2. Bell Geometry
 function buildBell() {
     const group = new THREE.Group();
-    // Body
     const body = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.6, 0.8, 16), mats.gold);
     body.castShadow = true;
     group.add(body);
-    // Rim
     const rim = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.08, 4, 16), mats.gold);
     rim.rotation.x = Math.PI/2;
     rim.position.y = -0.4;
     group.add(rim);
-    // Clapper
     const clapper = new THREE.Mesh(new THREE.SphereGeometry(0.2), mats.gold);
     clapper.position.y = -0.4;
     group.add(clapper);
-    // Handle
     const ring = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.04, 4, 16), mats.gold);
     ring.position.y = 0.45;
     group.add(ring);
     return group;
 }
 
-// 3. Ball
+// 3. Ball Geometry
 function buildBall() {
     const group = new THREE.Group();
-    // Sphere
     const ball = new THREE.Mesh(new THREE.SphereGeometry(0.6, 32, 32), mats.red);
     ball.castShadow = true;
     group.add(ball);
-    // Cap
     const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.2, 16), mats.gold);
     cap.position.y = 0.6;
     group.add(cap);
-    // Ring
     const ring = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.02, 4, 16), mats.gold);
     ring.position.y = 0.7;
     group.add(ring);
@@ -233,39 +218,68 @@ function createGeometry(type) {
     return new THREE.Group();
 }
 
-// --- Target Boxes ---
+// --- Target Boxes (Complex Silhouettes) ---
 function createTarget(x, type) {
     const group = new THREE.Group();
     group.position.set(x, -3.5, 0);
 
-    // Box
     const box = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.2, 2.4), mats.white);
     box.receiveShadow = true;
     group.add(box);
 
-    // Icon (Silhouette)
     let icon;
+    const shape = new THREE.Shape();
+
     if (type === 'tree') {
-        const shape = new THREE.Shape();
-        shape.moveTo(0, 0.6);
-        shape.lineTo(0.5, -0.4);
+        // Detailed Tree Silhouette
+        shape.moveTo(0, 0.7); // Top tip
+        shape.lineTo(0.2, 0.4); 
+        shape.lineTo(0.1, 0.4);
+        shape.lineTo(0.35, 0.0);
+        shape.lineTo(0.15, 0.0);
+        shape.lineTo(0.5, -0.4); // Bottom leaf edge
+        shape.lineTo(0.1, -0.4);
+        shape.lineTo(0.1, -0.6); // Trunk right
+        shape.lineTo(-0.1, -0.6);// Trunk left
+        shape.lineTo(-0.1, -0.4);
         shape.lineTo(-0.5, -0.4);
+        shape.lineTo(-0.15, 0.0);
+        shape.lineTo(-0.35, 0.0);
+        shape.lineTo(-0.1, 0.4);
+        shape.lineTo(-0.2, 0.4);
         icon = new THREE.Mesh(new THREE.ShapeGeometry(shape), mats.icon);
     } 
     else if (type === 'bell') {
-        const shape = new THREE.Shape();
-        shape.moveTo(-0.15, 0.4);
+        // Detailed Bell Silhouette
+        shape.moveTo(0, 0.5); // Top center
+        shape.absarc(0, 0.5, 0.15, Math.PI, 0); // Handle
         shape.lineTo(0.15, 0.4);
-        shape.lineTo(0.4, -0.4);
-        shape.lineTo(-0.4, -0.4);
+        shape.quadraticCurveTo(0.2, 0.0, 0.5, -0.4); // Bell flare right
+        shape.lineTo(0.2, -0.4);
+        shape.absarc(0, -0.4, 0.2, 0, Math.PI); // Clapper bottom
+        shape.lineTo(-0.5, -0.4); // Bell flare left
+        shape.quadraticCurveTo(-0.2, 0.0, -0.15, 0.4);
         icon = new THREE.Mesh(new THREE.ShapeGeometry(shape), mats.icon);
     } 
     else {
-        icon = new THREE.Mesh(new THREE.CircleGeometry(0.5, 32), mats.icon);
+        // Ball Silhouette (Circle + Cap)
+        shape.absarc(0, -0.1, 0.5, 0, Math.PI * 2); // Main Ball
+        // Cap
+        shape.moveTo(-0.15, 0.35);
+        shape.lineTo(0.15, 0.35);
+        shape.lineTo(0.15, 0.55);
+        shape.lineTo(-0.15, 0.55);
+        // Ring
+        shape.moveTo(0, 0.65);
+        shape.absarc(0, 0.65, 0.1, 0, Math.PI*2);
+        
+        icon = new THREE.Mesh(new THREE.ShapeGeometry(shape), mats.icon);
     }
 
     icon.rotation.x = -Math.PI / 2;
     icon.position.y = 0.61;
+    // Scale down slightly to fit nicely on box
+    icon.scale.set(0.9, 0.9, 0.9);
     group.add(icon);
 
     scene.add(group);
@@ -276,7 +290,7 @@ createTarget(-3, 'tree');
 createTarget(0, 'bell');
 createTarget(3, 'ball');
 
-// --- Spawning ---
+// --- Spawning (Fixed Height Range) ---
 const scene3D = {
     spawnShapes: (count) => {
         const types = ['tree', 'bell', 'ball'];
@@ -284,9 +298,11 @@ const scene3D = {
             const type = types[Math.floor(Math.random() * types.length)];
             const meshGroup = createGeometry(type);
             
+            // Modified: Center-Upper screen, but not overlapping header
             const posX = (Math.random() - 0.5) * 8; 
-            const posY = 3 + Math.random() * 5;  
-            const posZ = (Math.random() - 0.5) * 3; 
+            // Range: 1.0 to 4.5 (Above boxes at -3.5, below HUD at ~6)
+            const posY = 1.0 + Math.random() * 3.5;  
+            const posZ = (Math.random() - 0.5) * 2; 
             
             meshGroup.position.set(posX, posY, posZ);
             meshGroup.rotation.set(Math.random(), Math.random(), Math.random());
@@ -303,8 +319,8 @@ const scene3D = {
     },
 
     createExplosion: (pos, color) => {
-        for(let i=0; i<10; i++) {
-            const p = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.15), new THREE.MeshBasicMaterial({color}));
+        for(let i=0; i<12; i++) {
+            const p = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.12), new THREE.MeshBasicMaterial({color}));
             p.position.copy(pos);
             p.position.x += (Math.random()-0.5);
             p.position.y += (Math.random()-0.5);
